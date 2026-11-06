@@ -21,6 +21,17 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+*.egg-info/
+
+# Data & Indexes & Artifacts
+data/raw/
+data/processed/
+indexes/
+artifacts/
+mlruns/
 
 # Logs
 *.log

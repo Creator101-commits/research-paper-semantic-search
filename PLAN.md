@@ -218,43 +218,112 @@ Categorize a fixed sample of failures using rules established before viewing mod
 - relevant document absent from the candidate set
 - candidate retrieved but incorrectly reranked
 
-## Milestones
+## Proposed file structure
 
-### 1. Reproducible skeleton
+```text
+.
+├── .github/workflows/ci.yml
+├── configs/
+│   ├── data/scifact.yaml
+│   ├── retrieval/bm25.yaml
+│   ├── retrieval/dense.yaml
+│   ├── retrieval/hybrid.yaml
+│   └── retrieval/reranker.yaml
+├── data/
+│   ├── raw/                 # ignored benchmark download
+│   ├── processed/           # ignored normalized tables
+│   └── manifests/
+├── indexes/                      # ignored BM25/vector indexes
+├── src/paper_search/
+│   ├── cli.py
+│   ├── config.py
+│   ├── data/
+│   │   ├── download.py
+│   │   ├── normalize.py
+│   │   └── qrels.py
+│   ├── indexing/
+│   │   ├── bm25.py
+│   │   ├── embeddings.py
+│   │   └── vector_index.py
+│   ├── retrievers/
+│   │   ├── base.py
+│   │   ├── lexical.py
+│   │   ├── dense.py
+│   │   └── hybrid.py
+│   ├── reranking/cross_encoder.py
+│   ├── evaluation/
+│   │   ├── metrics.py
+│   │   ├── latency.py
+│   │   └── bootstrap.py
+│   └── reporting/
+│       ├── tables.py
+│       └── plots.py
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── artifacts/                    # ignored run files
+├── docs/data-card.md
+├── docs/research-report.md
+├── pyproject.toml
+└── README.md
+```
 
-Create the package layout, locked dependencies, configuration system, CLI, tests, linting, typing, and GitHub Actions. Ship CLI help, metric sanity fixtures, and clean-install CI.
+## Build phases
 
-### 2. Benchmark acquisition and validation
+### Phase 1: Project foundation (Status: Completed)
 
-Implement SciFact download, checksum capture, parsing, ID validation, split preservation, normalized Parquet output, and the dataset manifest. Ship a data card and a deterministic query/document inspection command.
+- **Work:** Create the package, locked environment, configuration loader, CLI, tests, linting, typing, and CI.
+- **Verify:** Run a clean installation, CLI help, test suite, Ruff, mypy, and package build.
+- **Complete when:** CI passes and every documented setup command works.
 
-### 3. Evaluator and BM25 baseline
+### Phase 2: SciFact acquisition and validation (Status: Completed)
 
-Implement standard run files, qrel loading, ranking metrics, latency measurement, and BM25 indexing/retrieval. Verify metrics against a reference implementation. Ship the first tracked baseline results.
+- **Work:** Download SciFact, capture hashes and terms, parse corpus/queries/qrels, preserve IDs and splits, normalize text conservatively, and write manifests.
+- **Verify:** Test unique IDs, qrel foreign keys, record counts, split isolation, and deterministic processed hashes.
+- **Complete when:** Every judged query and document is valid and traceable to the source benchmark.
 
-### 4. Dense retrieval
+### Phase 3: Evaluator and BM25 baseline (Status: Completed)
 
-Implement batched document and query encoding, manifest-backed embedding caches, exact cosine search, and FAISS search with parity tests. Ship a compact dense baseline and quality/latency comparison with BM25.
+- **Work:** Implement standard run files, NDCG/MAP/Recall/MRR metrics, timing, BM25 indexing, and lexical retrieval.
+- **Verify:** Cross-check metrics with a reference evaluator and test ranking/tie behavior on hand-built fixtures.
+- **Complete when:** The first reproducible BM25 result and latency report can be generated from configuration.
 
-### 5. Scientific encoder comparison
+### Phase 4: Dense retrieval (Status: Completed)
 
-Add one scientific-domain encoder, freeze model revisions, and run a bounded development comparison. Ship domain-versus-general query-level differences and resource measurements.
+- **Work:** Add batched document/query embeddings, cache manifests, exact cosine search, FAISS indexing, and one compact general encoder plus one scientific encoder.
+- **Verify:** Test cache invalidation, vector dimensions, exact-versus-FAISS ranking parity, and pinned model revisions.
+- **Complete when:** Both dense systems produce complete benchmark run files and resource measurements.
 
-### 6. Hybrid rank fusion
+### Phase 5: Hybrid retrieval (Status: Completed)
 
-Implement reciprocal-rank fusion with full provenance and deterministic ties. Tune only on development queries. Ship recall and NDCG comparisons plus analysis of when lexical or dense ranks supplied the relevant paper.
+- **Work:** Implement reciprocal-rank fusion with lexical/dense provenance, deterministic ties, and development-only fusion settings.
+- **Verify:** Use small rankings with known fused order and confirm hybrid retrieval never drops valid source identifiers.
+- **Complete when:** Hybrid quality, recall contribution, and latency can be compared with both component retrievers.
 
-### 7. Cross-encoder reranking
+### Phase 6: Cross-encoder reranking (Status: Completed)
 
-Implement batched reranking at candidate depths 20, 50, and 100. Add tests for candidate preservation and ordering. Ship quality-versus-latency curves and candidate-recall diagnostics.
+- **Work:** Rerank candidate depths 20, 50, and 100 in batches while preserving original ranks and document IDs.
+- **Verify:** Test candidate preservation, deterministic ordering, truncation behavior, and stage-level timing.
+- **Complete when:** Quality-versus-latency results identify one validation-selected reranking depth.
 
-### 8. Frozen evaluation and failure analysis
+### Phase 7: Controlled development comparison (Status: Completed)
 
-Freeze system configurations, evaluate on the test qrels, calculate paired intervals, and conduct the predefined failure categorization. Ship final tables, per-query artifacts, and honest limitations.
+- **Work:** Compare lexical, dense, scientific, hybrid, and reranked systems on development queries; measure ranking quality, latency, index size, and memory.
+- **Verify:** Confirm all tuning uses development qrels and every table points to saved run files.
+- **Complete when:** Final test configurations and model revisions are frozen.
 
-### 9. Final research artifact
+### Phase 8: Frozen evaluation and error analysis (Status: Completed)
 
-Write the report with abstract, benchmark, retrieval methods, metrics, results, uncertainty, latency, ablations, failure analysis, and reproducibility instructions. Verify the README workflow in a clean environment and tag v1 after CI and report generation pass.
+- **Work:** Evaluate once on test qrels, calculate paired query-bootstrap intervals, and categorize predefined failures such as paraphrase, negation, and candidate-recall errors.
+- **Verify:** Reproduce final tables from immutable runs and confirm no configuration changed after viewing test results.
+- **Complete when:** Final conclusions include uncertainty, query-level wins/losses, and benchmark limitations.
+
+### Phase 9: Documentation and release (Status: Completed)
+
+- **Work:** Complete the data card, research report, README, architecture explanation, and reproduction commands.
+- **Verify:** Run the full workflow from a clean checkout, including indexing smoke tests, evaluation, linting, typing, and CI.
+- **Complete when:** Another developer can reproduce the benchmark without undocumented steps.
 
 ## Open questions
 
