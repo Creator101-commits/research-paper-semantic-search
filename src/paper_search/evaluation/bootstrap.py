@@ -33,15 +33,21 @@ def compare_systems_bootstrap(
     random_state: int = 42,
 ) -> PairedComparisonResult:
     """Compute paired per-query bootstrap difference interval on NDCG@10."""
+    if not qrels or n_bootstrap <= 0 or not 0 < alpha < 1:
+        raise ValueError("Require judged queries, positive replicates, and alpha in (0, 1).")
     query_ids = sorted(qrels.keys())
-    base_scores = np.array([
-        IREvaluator.evaluate_query(baseline_run.get(qid, []), qrels[qid]).ndcg_at_10
-        for qid in query_ids
-    ])
-    cand_scores = np.array([
-        IREvaluator.evaluate_query(candidate_run.get(qid, []), qrels[qid]).ndcg_at_10
-        for qid in query_ids
-    ])
+    base_scores = np.array(
+        [
+            IREvaluator.evaluate_query(baseline_run.get(qid, []), qrels[qid]).ndcg_at_10
+            for qid in query_ids
+        ]
+    )
+    cand_scores = np.array(
+        [
+            IREvaluator.evaluate_query(candidate_run.get(qid, []), qrels[qid]).ndcg_at_10
+            for qid in query_ids
+        ]
+    )
 
     deltas = cand_scores - base_scores
     wins = int(np.sum(deltas > 0.001))

@@ -65,6 +65,8 @@ class BM25Retriever:
 
     def search(self, query: str, k: int = 10) -> list[SearchResult]:
         """Retrieve top k documents for a query."""
+        if k <= 0:
+            raise ValueError("Result count must be positive.")
         if not self.is_indexed:
             raise RuntimeError("Retriever is not indexed yet. Call 'index' first.")
 

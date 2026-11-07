@@ -1,0 +1,25 @@
+{
+  "source": "synthetic fixtures, test split only",
+  "ndcg_at_10": {
+    "BM25": 1.0,
+    "Hashed TF-IDF": 1.0,
+    "Hybrid RRF": 1.0,
+    "Lexical rerank": 1.0
+  },
+  "wins": [
+    0,
+    0,
+    0
+  ],
+  "ties": [
+    5,
+    5,
+    5
+  ],
+  "losses": [
+    0,
+    0,
+    0
+  ],
+  "source_sha256": "e3d74eab87f13630cdf0f7d14622ffada326365f6d26181437200112e0832795"
+}

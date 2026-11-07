@@ -5,7 +5,7 @@ A reproducible SciFact information-retrieval benchmark comparing BM25, dense enc
 ## Build commands
 
 ```bash
-# Planned after Milestone 1; not runnable yet.
+# Verification commands.
 uv sync
 uv run pytest
 uv run ruff check .

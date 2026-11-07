@@ -26,7 +26,7 @@ def format_paired_comparison_table(res: PairedComparisonResult, label: str) -> s
         "| Comparison | Mean Delta NDCG@10 (95% CI) | Wins | Ties | Losses |",
         "| :--- | :--- | :--- | :--- | :--- |",
         (
-            f"| `{label}` | +{res.mean_delta:.4f} "
+            f"| `{label}` | {res.mean_delta:+.4f} "
             f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}] | "
             f"{res.wins} | {res.ties} | {res.losses} |"
         ),
@@ -41,12 +41,15 @@ def generate_paper_search_report(
     """Produce comprehensive Markdown research report."""
     report = f"""# Research Paper Semantic Search Benchmark Report
 
+Synthetic ten-document corpus; five synthetic test queries.
+These are lexical demonstrations, not official SciFact or neural-model results.
+
 ## Overview and Retrieval Comparison
 
 {format_ir_benchmark_table(metrics_by_system)}
 
 ## Statistical Comparison against BM25 Lexical Baseline
 
-{format_paired_comparison_table(paired_comp, "Cross-Encoder vs BM25")}
+{format_paired_comparison_table(paired_comp, "Lexical reranker vs BM25")}
 """
     return report

@@ -1,4 +1,4 @@
-"""SciFact benchmark dataset acquisition and mock fixture generator."""
+"""Synthetic paper and claim fixtures, not official SciFact records."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from paper_search.data.schema import Document, Query
 
 
 def load_scifact_benchmark() -> tuple[list[Document], list[Query], dict[str, dict[str, int]]]:
-    """Load SciFact scientific paper benchmark corpus, queries, and qrels."""
+    """Load a hand-written ten-document demo with seven synthetic claim judgments."""
     docs = [
         Document(
             doc_id="doc_1",

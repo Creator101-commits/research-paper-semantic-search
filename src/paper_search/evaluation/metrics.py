@@ -32,6 +32,10 @@ class IREvaluator:
         k_recall: int = 100,
     ) -> IRMetrics:
         """Compute ranking metrics for a single query."""
+        if len({r.doc_id for r in results}) != len(results):
+            raise ValueError("Ranking must not contain duplicate document IDs.")
+        if min(k_ndcg, k_map, k_recall) <= 0:
+            raise ValueError("Metric cutoffs must be positive.")
         if not qrels or not any(rel > 0 for rel in qrels.values()):
             return IRMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 

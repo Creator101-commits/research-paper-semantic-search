@@ -1,4 +1,4 @@
-"""Cross-Encoder candidate reranking over retrieved candidate pools."""
+"""Lexical overlap reranking; the legacy class name is retained for compatibility."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from paper_search.data.schema import Document, SearchResult, normalize_text
 
 
 class CrossEncoderReranker:
-    """Second-stage cross-encoder reranker over top candidate subsets.
+    """Second-stage lexical overlap reranker over top candidate subsets.
 
     Parameters
     ----------
@@ -31,7 +31,7 @@ class CrossEncoderReranker:
         top_k: int = 10,
         max_candidate_depth: int = 50,
     ) -> tuple[list[SearchResult], float]:
-        """Score candidate pairs with cross-attention interaction and return reranked list."""
+        """Score candidate pairs with title and abstract token overlap and return reranked list."""
         t0 = time.perf_counter()
         query_tokens = set(normalize_text(query))
         if not query_tokens:
@@ -54,9 +54,7 @@ class CrossEncoderReranker:
 
             # Interaction score
             interaction_score = (
-                self.title_weight * title_overlap
-                + abstract_overlap
-                + 0.1 * cand.score
+                self.title_weight * title_overlap + abstract_overlap + 0.1 * cand.score
             )
             reranked_scores.append((cand.doc_id, interaction_score))
 

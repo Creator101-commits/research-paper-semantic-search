@@ -70,6 +70,8 @@ def search(
 def compare() -> None:
     """Run benchmark comparison across BM25, Dense, Hybrid RRF, and Cross-Encoder."""
     docs, queries, qrels = load_scifact_benchmark()
+    queries = [q for q in queries if q.split == "test"]
+    qrels = {q.query_id: qrels[q.query_id] for q in queries}
 
     bm25 = BM25Retriever().index(docs)
     dense = DenseRetriever().index(docs)
@@ -83,10 +85,10 @@ def compare() -> None:
     rerank_runs: dict[str, list[SearchResult]] = {}
 
     for q in queries:
-        bm25_res = bm25.search(q.text, k=10)
-        dense_res = dense.search(q.text, k=10)
-        hybrid_res = hybrid.search(q.text, k=10)
-        rerank_res, _ = reranker.rerank(q.text, hybrid_res, top_k=10)
+        bm25_res = bm25.search(q.text, k=100)
+        dense_res = dense.search(q.text, k=100)
+        hybrid_res = hybrid.search(q.text, k=100)
+        rerank_res, _ = reranker.rerank(q.text, hybrid_res, top_k=100)
 
         bm25_runs[q.query_id] = bm25_res
         dense_runs[q.query_id] = dense_res
@@ -95,12 +97,12 @@ def compare() -> None:
 
     metrics_by_system: dict[str, IRMetrics] = {
         "BM25 Lexical": IREvaluator.evaluate_run(bm25_runs, qrels),
-        "Dense Semantic": IREvaluator.evaluate_run(dense_runs, qrels),
+        "Hashed TF-IDF": IREvaluator.evaluate_run(dense_runs, qrels),
         "Hybrid RRF": IREvaluator.evaluate_run(hybrid_runs, qrels),
-        "Cross-Encoder Rerank": IREvaluator.evaluate_run(rerank_runs, qrels),
+        "Lexical Rerank": IREvaluator.evaluate_run(rerank_runs, qrels),
     }
 
-    typer.echo("\nSciFact IR Benchmark Results:")
+    typer.echo("\nSynthetic IR Demo Results (not official SciFact):")
     typer.echo(format_ir_benchmark_table(metrics_by_system))
 
 
@@ -115,6 +117,8 @@ def report(
 ) -> None:
     """Generate and display complete research report."""
     docs, queries, qrels = load_scifact_benchmark()
+    queries = [q for q in queries if q.split == "test"]
+    qrels = {q.query_id: qrels[q.query_id] for q in queries}
 
     bm25 = BM25Retriever().index(docs)
     dense = DenseRetriever().index(docs)
@@ -128,18 +132,18 @@ def report(
     rerank_runs: dict[str, list[SearchResult]] = {}
 
     for q in queries:
-        bm25_runs[q.query_id] = bm25.search(q.text, k=10)
-        dense_runs[q.query_id] = dense.search(q.text, k=10)
-        hybrid_res = hybrid.search(q.text, k=10)
+        bm25_runs[q.query_id] = bm25.search(q.text, k=100)
+        dense_runs[q.query_id] = dense.search(q.text, k=100)
+        hybrid_res = hybrid.search(q.text, k=100)
         hybrid_runs[q.query_id] = hybrid_res
-        rerank_res, _ = reranker.rerank(q.text, hybrid_res, top_k=10)
+        rerank_res, _ = reranker.rerank(q.text, hybrid_res, top_k=100)
         rerank_runs[q.query_id] = rerank_res
 
     metrics_by_system: dict[str, IRMetrics] = {
         "BM25 Lexical": IREvaluator.evaluate_run(bm25_runs, qrels),
-        "Dense Semantic": IREvaluator.evaluate_run(dense_runs, qrels),
+        "Hashed TF-IDF": IREvaluator.evaluate_run(dense_runs, qrels),
         "Hybrid RRF": IREvaluator.evaluate_run(hybrid_runs, qrels),
-        "Cross-Encoder Rerank": IREvaluator.evaluate_run(rerank_runs, qrels),
+        "Lexical Rerank": IREvaluator.evaluate_run(rerank_runs, qrels),
     }
 
     paired_comp = compare_systems_bootstrap(bm25_runs, rerank_runs, qrels)

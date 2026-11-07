@@ -55,7 +55,7 @@ def test_cli_search_invalid_system() -> None:
 def test_cli_compare() -> None:
     result = runner.invoke(app, ["compare"])
     assert result.exit_code == 0
-    assert "SciFact IR Benchmark Results" in result.output
+    assert "Synthetic IR Demo Results" in result.output
     assert "NDCG@10" in result.output
 
 

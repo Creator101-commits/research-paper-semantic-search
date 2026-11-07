@@ -28,6 +28,8 @@ class HybridRRFRetriever:
         lexical_weight: float = 1.0,
         dense_weight: float = 1.0,
     ) -> None:
+        if k_rrf < 0 or lexical_weight < 0 or dense_weight < 0:
+            raise ValueError("RRF smoothing and weights must be non-negative.")
         self.k_rrf = k_rrf
         self.lexical_weight = lexical_weight
         self.dense_weight = dense_weight
@@ -49,9 +51,12 @@ class HybridRRFRetriever:
         candidate_depth: int = 50,
     ) -> list[SearchResult]:
         """Perform hybrid reciprocal rank fusion retrieval."""
+        if k <= 0:
+            raise ValueError("Result count must be positive.")
         if not self.is_indexed:
             raise RuntimeError("Hybrid retriever is not indexed. Call 'index' first.")
 
+        candidate_depth = max(candidate_depth, k)
         bm25_results = self.bm25.search(query, k=candidate_depth)
         dense_results = self.dense.search(query, k=candidate_depth)
 

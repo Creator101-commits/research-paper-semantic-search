@@ -10,7 +10,7 @@
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/Creator101-commits/research-paper-semantic-search)
 ![GitHub](https://img.shields.io/github/license/Creator101-commits/research-paper-semantic-search)
 
-A reproducible scientific paper retrieval and ranking benchmark comparing title-plus-abstract BM25 lexical search, dense semantic encoders, Reciprocal Rank Fusion (RRF), and Cross-Encoder reranking on SciFact claims. Evaluates ranking quality (NDCG@10, MAP@100, Recall@100, MRR@10), paired query bootstrap significance, and candidate win/loss metrics.
+A CPU retrieval demonstration with BM25, hashed TF-IDF cosine search, reciprocal rank fusion, and a lexical title/abstract overlap reranker. The embedded loader returns ten hand-written documents and seven synthetic queries, not actual SciFact records. The CLI evaluates only the five synthetic test queries and retrieves up to 100 candidates for metrics at depth 100. Neural encoders, a trained cross-encoder, and a real SciFact ingestion pipeline remain planned.
 
 ## Table of Contents
 
@@ -26,9 +26,9 @@ A reproducible scientific paper retrieval and ranking benchmark comparing title-
 ## Features
 
 - **Okapi BM25 Lexical Retrieval**: Robertson-Sparck Jones IDF weighting with length normalization (k1=1.5, b=0.75).
-- **Dense Semantic Retrieval**: High-dimensional semantic embeddings with exact cosine similarity matching.
+- **Hashed Feature Retrieval**: Hashed TF-IDF lexical vectors with exact cosine similarity matching.
 - **Hybrid Reciprocal Rank Fusion (RRF)**: Deterministic score-agnostic rank combination with configurable smoothing constant.
-- **Cross-Encoder Reranking**: Fine-grained query-document joint scoring over candidate retrieval pools.
+- **Lexical Reranking**: Weighted title and abstract token overlap over candidate retrieval pools.
 - **Statistical Significance**: Paired per-query bootstrap difference testing for NDCG@10 with empirical confidence intervals.
 
 ## Quickstart
@@ -96,7 +96,7 @@ docs, queries, qrels = load_scifact_benchmark()
 hybrid = HybridRRFRetriever(k_rrf=60.0).index(docs)
 candidates = hybrid.search("telomere attrition in cellular aging", k=20)
 
-# Rerank with Cross-Encoder
+# Legacy class name; implementation uses lexical overlap
 reranker = CrossEncoderReranker()
 reranker.index_documents(docs)
 final_ranked, latency_ms = reranker.rerank(
@@ -116,7 +116,7 @@ The benchmark measures:
 - **MAP@100**: Mean Average Precision up to rank 100.
 - **Recall@100 & Recall@10**: Coverage of ground-truth relevant papers.
 - **MRR@10**: Mean Reciprocal Rank of the first relevant document.
-- **Paired Bootstrap CI**: 95% confidence intervals on per-query NDCG delta to verify statistical superiority.
+- **Paired Bootstrap CI**: 95% confidence intervals on per-query NDCG delta to describe paired uncertainty; the tiny fixture cannot establish general superiority.
 
 ## Development and Testing
 
@@ -134,3 +134,11 @@ uv run mypy src
 ## License
 
 Distributed under the MIT License. See [LICENSE](./LICENSE) for details.
+
+## Provenance and compatibility
+
+`DenseRetriever` and `CrossEncoderReranker` are historical class names retained for compatibility, not evidence that neural models are loaded. Demo results must not be reported as SciBERT or SciFact benchmark scores. The real [SciFact dataset](https://github.com/allenai/scifact) uses original document and claim IDs; official test labels are not public in the cited release.
+
+## Reproducing the figure
+
+`image.png` contains only Matplotlib graphs. Run `PYTHONPATH=src python scripts/render_figure.py` in a Python environment containing the project dependencies and Matplotlib. The plotting environment is separate from the core runtime when Matplotlib is absent. `scripts/figure-data.json` stores the plotted measurements or analytical inputs. Captions distinguish real packaged datasets, synthetic fixtures, analytical calculations, and local timings. No GPU performance is inferred from CPU demonstrations.

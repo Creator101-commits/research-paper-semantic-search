@@ -1,3 +1,5 @@
+> This document is a roadmap. See README.md for implemented behavior and verification limits; planned capabilities are not measured results.
+
 # Build Plan: Research-Paper Semantic Search
 
 ## Goal

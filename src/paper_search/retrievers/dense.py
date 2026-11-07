@@ -1,4 +1,4 @@
-"""Dense semantic embedding retriever with exact cosine similarity."""
+"""Hashed TF-IDF feature retriever with exact cosine similarity."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from paper_search.data.schema import Document, SearchResult, normalize_text
 
 
 class DenseRetriever:
-    """Dense vector retriever using L2-normalized semantic representations.
+    """Dense vector retriever using L2-normalized hashed lexical representations.
 
     Parameters
     ----------
@@ -20,6 +20,8 @@ class DenseRetriever:
     """
 
     def __init__(self, embedding_dim: int = 128) -> None:
+        if embedding_dim <= 0:
+            raise ValueError("embedding_dim must be positive.")
         self.embedding_dim = embedding_dim
         self.documents: list[Document] = []
         self.doc_ids: list[str] = []
@@ -29,7 +31,7 @@ class DenseRetriever:
         self.is_indexed: bool = False
 
     def _encode_text(self, text: str) -> np.ndarray:
-        """Encode a string into an L2-normalized semantic dense vector."""
+        """Encode a string into an L2-normalized hashed TF-IDF vector."""
         tokens = normalize_text(text)
         vec = np.zeros(self.embedding_dim, dtype=np.float64)
 
@@ -42,7 +44,7 @@ class DenseRetriever:
                 vocab_idx = self.vocabulary[token]
                 dim_idx = vocab_idx % self.embedding_dim
                 weight = count * self.idf[vocab_idx]
-                # Alternate sign hashing to distribute term semantics evenly
+                # Alternate sign hashing to distribute term weights evenly
                 sign = 1.0 if (vocab_idx % 2 == 0) else -1.0
                 vec[dim_idx] += sign * weight
 
@@ -84,6 +86,8 @@ class DenseRetriever:
 
     def search(self, query: str, k: int = 10) -> list[SearchResult]:
         """Perform exact cosine similarity retrieval over document embeddings."""
+        if k <= 0:
+            raise ValueError("Result count must be positive.")
         if not self.is_indexed or self.doc_embeddings is None:
             raise RuntimeError("Retriever is not indexed yet. Call 'index' first.")
 
