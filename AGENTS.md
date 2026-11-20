@@ -14,8 +14,9 @@ uv run mypy src
 
 ## Platform support
 
-- macOS and Linux; Python 3.12.
-- Exact retrieval is CPU-safe; dense encoding, FAISS, and reranking may need additional memory or hardware.
+- macOS and Linux; Python 3.11-3.13 (Kaggle images ship 3.11).
+- Exact retrieval and the offline fixture are CPU-safe; dense encoding, FAISS, and cross-encoder reranking need the `neural` extra and are intended to run on Kaggle (`scripts/kaggle_run.sh`).
+- `uv sync --extra neural` downloads sentence-transformers, torch, and faiss-cpu; local tests never download models.
 
 ## Key conventions
 

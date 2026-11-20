@@ -22,7 +22,7 @@ Build a reproducible information-retrieval benchmark for finding scientific pape
 - Evaluate with NDCG, MAP, Recall, Precision, and MRR at fixed cutoffs.
 - Measure query latency, corpus encoding time, index construction time, index size, and memory when practical.
 - Report uncertainty and query-level win/loss analysis.
-- Track all runs, model revisions, data hashes, settings, metrics, and artifacts with MLflow.
+- Record every run in a JSON manifest: model revisions, data hashes, settings, metrics, and artifact paths. MLflow was evaluated and skipped because a JSON manifest already captures the same provenance for a single-machine benchmark and avoids a tracking-server dependency.
 - Provide a CLI and a complete research report.
 
 ### Explicitly outside v1
@@ -53,8 +53,8 @@ Build a reproducible information-retrieval benchmark for finding scientific pape
 - **Lexical retrieval:** BM25S
 - **Dense retrieval and reranking:** sentence-transformers and PyTorch
 - **Vector search:** exact NumPy search for fixtures and FAISS CPU for the benchmark index
-- **Metrics:** ranx or verified internal metric functions cross-checked against a reference
-- **Tracking:** MLflow
+- **Metrics:** internal evaluator cross-checked against pytrec_eval to 1e-6 on the real run
+- **Tracking:** JSON run manifest (MLflow skipped; see scope note)
 - **Visualization:** Matplotlib and seaborn
 - **CLI and quality:** Typer, pytest, Ruff, mypy, and GitHub Actions
 
@@ -85,7 +85,7 @@ SciFact corpus + queries + qrels
        shared evaluator + profiler
                 |
                 v
-       MLflow + tables + error report
+       manifest + tables + error report
 ```
 
 ### Components
@@ -307,7 +307,7 @@ Categorize a fixed sample of failures using rules established before viewing mod
 
 - **Work:** Rerank candidate depths 20, 50, and 100 in batches while preserving original ranks and document IDs.
 - **Verify:** Test candidate preservation, deterministic ordering, truncation behavior, and stage-level timing.
-- **Complete when:** Quality-versus-latency results identify one validation-selected reranking depth.
+- **Complete when:** Quality-versus-latency results identify one validation-selected reranking option, including the no-rerank baseline.
 
 ### Phase 7: Controlled development comparison (Status: Completed)
 
