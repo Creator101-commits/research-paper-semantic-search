@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from paper_search.data.fixtures import load_fixture_benchmark
 from paper_search.data.schema import Document, normalize_text
-from paper_search.data.scifact import load_scifact_benchmark
 
 
 def test_document_full_text() -> None:
     doc = Document(doc_id="1", title="Title", abstract="Abstract body")
     assert doc.full_text == "Title [SEP] Abstract body"
+    assert doc.plain_text == "Title Abstract body"
+
+
+def test_document_plain_text_empty_title() -> None:
+    doc = Document(doc_id="1", title="", abstract="Abstract body")
+    assert doc.plain_text == "Abstract body"
 
 
 def test_normalize_text() -> None:
@@ -23,8 +29,10 @@ def test_normalize_text() -> None:
     assert normalize_text("") == []
 
 
-def test_load_scifact_benchmark() -> None:
-    docs, queries, qrels = load_scifact_benchmark()
+def test_load_fixture_benchmark() -> None:
+    data = load_fixture_benchmark()
+    docs, queries, qrels = data.documents, data.queries, data.qrels
+    assert data.name == "fixture"
     assert len(docs) == 10
     assert len(queries) == 7
     assert len(qrels) == 7

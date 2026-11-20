@@ -1,147 +1,232 @@
-"""Synthetic paper and claim fixtures, not official SciFact records."""
+"""BEIR SciFact loader from the Hugging Face Hub.
+
+Downloads the pinned corpus, queries, and qrels revisions, validates record
+counts and foreign keys, and preserves original benchmark IDs and splits.
+Requires the ``neural`` optional extra (``huggingface_hub``, ``pyarrow``).
+"""
 
 from __future__ import annotations
 
-from paper_search.data.schema import Document, Query
+import hashlib
+from dataclasses import replace
+from pathlib import Path
+from typing import Any
+
+from paper_search.data.fixtures import load_fixture_benchmark
+from paper_search.data.schema import BenchmarkDataset, Document, Query
+
+SCIFACT_DATASET = "BeIR/scifact"
+SCIFACT_QRELS_DATASET = "BeIR/scifact-qrels"
+SCIFACT_REVISION = "b3b5335604bf5ee3c4447671af975ea25143d4f5"
+SCIFACT_QRELS_REVISION = "2938d17dc3b09882fdb8c12bbbe2e2dc0e75a029"
+
+EXPECTED_CORPUS_DOCS = 5183
+EXPECTED_QUERIES = 1109
+EXPECTED_TRAIN_QUERIES = 809
+EXPECTED_TEST_QUERIES = 300
+
+_CORPUS_FILE = "corpus/corpus-00000-of-00001.parquet"
+_QUERIES_FILE = "queries/queries-00000-of-00001.parquet"
+_QRELS_FILES = {"train": "train.tsv", "test": "test.tsv"}
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _hf_download(repo_id: str, filename: str, revision: str) -> Path:
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError as exc:
+        raise RuntimeError(
+            "Loading SciFact requires the neural extra: install with "
+            "`uv sync --extra neural` or `pip install .[neural]`."
+        ) from exc
+    return Path(
+        hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            revision=revision,
+            repo_type="dataset",
+        )
+    )
+
+
+def _read_parquet_records(path: Path) -> list[dict[str, Any]]:
+    import pyarrow.parquet as pq
+
+    rows: list[dict[str, Any]] = pq.read_table(path).to_pylist()
+    return rows
+
+
+def parse_qrels_tsv(text: str) -> dict[str, dict[str, int]]:
+    """Parse a BEIR qrels TSV (`query-id`, `corpus-id`, `score`) into nested dicts."""
+    qrels: dict[str, dict[str, int]] = {}
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) != 3:
+            raise ValueError(f"Malformed qrels row at line {line_no}: {line!r}")
+        query_id, doc_id, score_raw = parts
+        if query_id == "query-id":
+            continue  # header row
+        try:
+            score = int(score_raw)
+        except ValueError as exc:
+            raise ValueError(
+                f"Non-integer qrels score at line {line_no}: {score_raw!r}"
+            ) from exc
+        qrels.setdefault(query_id, {})[doc_id] = score
+    return qrels
+
+
+def build_scifact_dataset(
+    corpus_rows: list[dict[str, Any]],
+    query_rows: list[dict[str, Any]],
+    train_qrels: dict[str, dict[str, int]],
+    test_qrels: dict[str, dict[str, int]],
+) -> BenchmarkDataset:
+    """Build and validate a BenchmarkDataset from raw BEIR SciFact records."""
+    documents = [
+        Document(
+            doc_id=str(row["_id"]),
+            title=str(row.get("title") or ""),
+            abstract=str(row["text"]),
+        )
+        for row in corpus_rows
+    ]
+    doc_ids = [doc.doc_id for doc in documents]
+    if len(set(doc_ids)) != len(doc_ids):
+        raise ValueError("SciFact corpus contains duplicate document IDs.")
+    if len(documents) != EXPECTED_CORPUS_DOCS:
+        raise ValueError(
+            f"Expected {EXPECTED_CORPUS_DOCS} SciFact corpus documents, "
+            f"found {len(documents)}."
+        )
+    if any(not doc.abstract.strip() for doc in documents):
+        raise ValueError("SciFact corpus contains a document with empty text.")
+
+    split_by_query: dict[str, str] = {}
+    for split, split_qrels in (("train", train_qrels), ("test", test_qrels)):
+        for query_id in split_qrels:
+            if query_id in split_by_query:
+                raise ValueError(f"Query {query_id} appears in both qrels splits.")
+            split_by_query[query_id] = split
+
+    queries: list[Query] = []
+    for row in query_rows:
+        query_id = str(row["_id"])
+        text = str(row.get("text") or "") or str(row.get("title") or "")
+        query_split = split_by_query.get(query_id)
+        if query_split is None:
+            raise ValueError(f"Query {query_id} has no qrels in train or test split.")
+        if not text.strip():
+            raise ValueError(f"Query {query_id} has empty text.")
+        queries.append(Query(query_id=query_id, text=text, split=query_split))
+
+    query_ids = [query.query_id for query in queries]
+    if len(set(query_ids)) != len(query_ids):
+        raise ValueError("SciFact queries contain duplicate query IDs.")
+    if len(queries) != EXPECTED_QUERIES:
+        raise ValueError(
+            f"Expected {EXPECTED_QUERIES} SciFact queries, found {len(queries)}."
+        )
+
+    n_train = sum(1 for q in queries if q.split == "train")
+    n_test = sum(1 for q in queries if q.split == "test")
+    if n_train != EXPECTED_TRAIN_QUERIES or n_test != EXPECTED_TEST_QUERIES:
+        raise ValueError(
+            f"Expected {EXPECTED_TRAIN_QUERIES} train and {EXPECTED_TEST_QUERIES} "
+            f"test queries, found {n_train} train and {n_test} test."
+        )
+    if len(train_qrels) != EXPECTED_TRAIN_QUERIES or len(test_qrels) != EXPECTED_TEST_QUERIES:
+        raise ValueError(
+            f"Expected {EXPECTED_TRAIN_QUERIES} train and {EXPECTED_TEST_QUERIES} "
+            f"judged test queries, found {len(train_qrels)} and {len(test_qrels)}."
+        )
+
+    doc_id_set = set(doc_ids)
+    query_id_set = set(query_ids)
+    for split, split_qrels in (("train", train_qrels), ("test", test_qrels)):
+        for query_id, rels in split_qrels.items():
+            if query_id not in query_id_set:
+                raise ValueError(f"Qrels reference unknown query {query_id} ({split}).")
+            for doc_id, score in rels.items():
+                if doc_id not in doc_id_set:
+                    raise ValueError(f"Qrels reference unknown document {doc_id} ({split}).")
+                if score <= 0:
+                    raise ValueError(f"Non-positive qrels score for {query_id}/{doc_id}.")
+
+    qrels = {**train_qrels, **test_qrels}
+    return BenchmarkDataset(
+        name="scifact",
+        documents=documents,
+        queries=queries,
+        qrels=qrels,
+        provenance={
+            "corpus_dataset": SCIFACT_DATASET,
+            "corpus_revision": SCIFACT_REVISION,
+            "qrels_dataset": SCIFACT_QRELS_DATASET,
+            "qrels_revision": SCIFACT_QRELS_REVISION,
+            "license": "cc-by-sa-4.0",
+        },
+    )
+
+
+def load_scifact_dataset() -> BenchmarkDataset:
+    """Download and validate the pinned BEIR SciFact benchmark from the HF Hub."""
+    corpus_path = _hf_download(SCIFACT_DATASET, _CORPUS_FILE, SCIFACT_REVISION)
+    queries_path = _hf_download(SCIFACT_DATASET, _QUERIES_FILE, SCIFACT_REVISION)
+    qrels_paths = {
+        split: _hf_download(SCIFACT_QRELS_DATASET, filename, SCIFACT_QRELS_REVISION)
+        for split, filename in _QRELS_FILES.items()
+    }
+
+    corpus_rows = _read_parquet_records(corpus_path)
+    query_rows = _read_parquet_records(queries_path)
+    split_qrels = {
+        split: parse_qrels_tsv(path.read_text(encoding="utf-8"))
+        for split, path in qrels_paths.items()
+    }
+
+    dataset = build_scifact_dataset(
+        corpus_rows,
+        query_rows,
+        split_qrels["train"],
+        split_qrels["test"],
+    )
+    provenance = {
+        **dataset.provenance,
+        "files": {
+            f"{SCIFACT_DATASET}/{_CORPUS_FILE}": _sha256_file(corpus_path),
+            f"{SCIFACT_DATASET}/{_QUERIES_FILE}": _sha256_file(queries_path),
+            **{
+                f"{SCIFACT_QRELS_DATASET}/{filename}": _sha256_file(path)
+                for filename, path in qrels_paths.items()
+            },
+        },
+        "counts": {
+            "corpus_documents": len(dataset.documents),
+            "queries": len(dataset.queries),
+            "train_queries": EXPECTED_TRAIN_QUERIES,
+            "test_queries": EXPECTED_TEST_QUERIES,
+            "qrels": len(dataset.qrels),
+        },
+        "note": (
+            "BEIR SciFact 'test' qrels correspond to the SciFact development claims; "
+            "official SciFact test labels are not public."
+        ),
+    }
+    return replace(dataset, provenance=provenance)
 
 
 def load_scifact_benchmark() -> tuple[list[Document], list[Query], dict[str, dict[str, int]]]:
-    """Load a hand-written ten-document demo with seven synthetic claim judgments."""
-    docs = [
-        Document(
-            doc_id="doc_1",
-            title="CRISPR-Cas9 structures and mechanisms of target DNA cleavage",
-            abstract=(
-                "The Cas9 endonuclease uses RNA guides to recognize and cleave target DNA. "
-                "Structural analysis reveals conformational states during R-loop formation "
-                "and double-strand break induction."
-            ),
-        ),
-        Document(
-            doc_id="doc_2",
-            title="Safety and efficacy of lipid nanoparticle mRNA vaccines",
-            abstract=(
-                "Lipid nanoparticle formulation protects mRNA from enzymatic degradation "
-                "and facilitates cytoplasmic delivery, eliciting potent neutralizing antibody "
-                "and T-cell responses against viral pathogens."
-            ),
-        ),
-        Document(
-            doc_id="doc_3",
-            title="Telomere shortening in human cellular aging and chromosomal instability",
-            abstract=(
-                "Telomeres protect chromosome ends from degradation. Progressive attrition "
-                "during cell division triggers senescence or genomic rearrangements in the "
-                "absence of telomerase activation."
-            ),
-        ),
-        Document(
-            doc_id="doc_4",
-            title="Interleukin-6 signaling pathways in inflammatory and autoimmune diseases",
-            abstract=(
-                "IL-6 binds either membrane-bound or soluble IL-6 receptor, triggering classical "
-                "or trans-signaling cascades via gp130 that modulate immune cell activation."
-            ),
-        ),
-        Document(
-            doc_id="doc_5",
-            title="Angiotensin receptor blockers and renal protection in hypertension",
-            abstract=(
-                "Blockade of angiotensin II type 1 receptors reduces intraglomerular pressure, "
-                "diminishes proteinuria, and retards the progression of chronic kidney disease."
-            ),
-        ),
-        Document(
-            doc_id="doc_6",
-            title=(
-                "Single-cell transcriptomics reveals heterogeneous immune cell states in oncology"
-            ),
-            abstract=(
-                "Single-cell RNA sequencing identifies distinct exhausted CD8 T-cell subsets "
-                "and immunosuppressive regulatory myeloid populations within tumor environments."
-            ),
-        ),
-        Document(
-            doc_id="doc_7",
-            title="Mitochondrial dysfunction and oxidative stress in neurodegenerative disorders",
-            abstract=(
-                "Deficits in electron transport chain complex I and elevated reactive oxygen "
-                "species lead to synaptic loss and dopaminergic neuronal death in Parkinson."
-            ),
-        ),
-        Document(
-            doc_id="doc_8",
-            title="Mechanisms of antimicrobial resistance in gram-negative pathogens",
-            abstract=(
-                "Overexpression of efflux pumps, outer membrane porin mutations, and production "
-                "of carbapenemases mediate multidrug resistance in Klebsiella pneumoniae."
-            ),
-        ),
-        Document(
-            doc_id="doc_9",
-            title="Metformin suppresses hepatic gluconeogenesis via AMP-activated protein kinase",
-            abstract=(
-                "Activation of AMPK by metformin inhibits fructose-1,6-bisphosphatase and "
-                "improves systemic insulin sensitivity in type 2 diabetes mellitus."
-            ),
-        ),
-        Document(
-            doc_id="doc_10",
-            title="Gut microbiome composition influences response to immune checkpoint inhibition",
-            abstract=(
-                "High diversity of intestinal Ruminococcaceae correlates with increased antigen "
-                "presentation and superior response rates to anti-PD-1 therapy in melanoma."
-            ),
-        ),
-    ]
-
-    queries = [
-        Query(
-            query_id="q_1",
-            text="CRISPR Cas9 induces double-strand DNA breaks via RNA guidance.",
-            split="test",
-        ),
-        Query(
-            query_id="q_2",
-            text="Lipid nanoparticles enhance mRNA stability and cellular uptake.",
-            split="test",
-        ),
-        Query(
-            query_id="q_3",
-            text="Telomere attrition promotes cellular senescence and genomic instability.",
-            split="test",
-        ),
-        Query(
-            query_id="q_4",
-            text="Interleukin-6 mediates immune activation through gp130 signaling.",
-            split="test",
-        ),
-        Query(
-            query_id="q_5",
-            text="Angiotensin blockers decrease proteinuria and slow kidney disease progression.",
-            split="test",
-        ),
-        Query(
-            query_id="q_6",
-            text="Metformin activates AMPK to suppress liver gluconeogenesis.",
-            split="dev",
-        ),
-        Query(
-            query_id="q_7",
-            text="Intestinal bacterial diversity enhances checkpoint inhibitor immunotherapy.",
-            split="dev",
-        ),
-    ]
-
-    # Ground truth relevance judgments (qrels): query_id -> {doc_id: relevance}
-    qrels = {
-        "q_1": {"doc_1": 1},
-        "q_2": {"doc_2": 1},
-        "q_3": {"doc_3": 1},
-        "q_4": {"doc_4": 1},
-        "q_5": {"doc_5": 1},
-        "q_6": {"doc_9": 1},
-        "q_7": {"doc_10": 1},
-    }
-
-    return docs, queries, qrels
+    """Legacy fixture API kept for callers not yet migrated to BenchmarkDataset."""
+    data = load_fixture_benchmark()
+    return data.documents, data.queries, data.qrels

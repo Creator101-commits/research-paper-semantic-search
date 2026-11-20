@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -17,8 +18,13 @@ class Document:
 
     @property
     def full_text(self) -> str:
-        """Combine title and abstract with explicit section marker."""
+        """Title and abstract joined with an explicit marker for lexical indexing."""
         return f"{self.title} [SEP] {self.abstract}"
+
+    @property
+    def plain_text(self) -> str:
+        """Title and abstract joined with a plain space for neural encoders."""
+        return " ".join(part for part in (self.title, self.abstract) if part)
 
 
 @dataclass(frozen=True)
@@ -37,6 +43,17 @@ class SearchResult:
     doc_id: str
     score: float
     rank: int
+
+
+@dataclass(frozen=True)
+class BenchmarkDataset:
+    """Loaded benchmark corpus, queries, relevance judgments, and provenance."""
+
+    name: str
+    documents: list[Document]
+    queries: list[Query]
+    qrels: dict[str, dict[str, int]]
+    provenance: dict[str, Any] = field(default_factory=dict)
 
 
 def normalize_text(text: str) -> list[str]:
