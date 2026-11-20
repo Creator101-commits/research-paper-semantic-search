@@ -1,8 +1,6 @@
-"""Tests for Paper Search CLI."""
+"""Tests for CLI commands."""
 
 from __future__ import annotations
-
-from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -14,61 +12,69 @@ runner = CliRunner()
 def test_cli_version() -> None:
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "0.1.0" in result.output
+    assert result.output.strip() == "0.1.0"
 
 
-def test_cli_search_bm25() -> None:
-    result = runner.invoke(app, ["search", "CRISPR Cas9 DNA", "--system", "bm25", "--top-k", "2"])
+def test_cli_search_bm25_default_fixture() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "search",
+            "CRISPR-Cas9 gene editing in human cells",
+            "--system",
+            "bm25",
+        ],
+    )
     assert result.exit_code == 0
+    assert "CRISPR-Cas9 gene editing in human cells" in result.output
+    assert "doc_1" in result.output
+    assert "using [bm25]" in result.output
+
+
+def test_cli_search_rejects_invalid_system() -> None:
+    result = runner.invoke(app, ["search", "test query", "--system", "neural"])
+    assert result.exit_code != 0
+
+
+def test_cli_search_rejects_invalid_dataset() -> None:
+    result = runner.invoke(
+        app, ["search", "test query", "--dataset", "wikipedia"]
+    )
+    assert result.exit_code != 0
+
+
+def test_cli_search_fixture_tfidf() -> None:
+    result = runner.invoke(
+        app,
+        ["search", "CRISPR gene editing", "--system", "tfidf"],
+    )
+    assert result.exit_code == 0
+    assert "Hashed TF-IDF" not in result.output  # system label, not printed
+    assert "using [tfidf]" in result.output
     assert "doc_1" in result.output
 
 
-def test_cli_search_dense() -> None:
-    result = runner.invoke(app, ["search", "CRISPR Cas9", "--system", "dense", "--top-k", "2"])
+def test_cli_search_fixture_rerank() -> None:
+    result = runner.invoke(
+        app,
+        ["search", "Cas9 nuclease DNA", "--system", "rerank"],
+    )
     assert result.exit_code == 0
-    assert "Top 2 results" in result.output
+    assert "using [rerank]" in result.output
     assert "doc_1" in result.output
 
 
-def test_cli_search_hybrid() -> None:
-    args = ["search", "mRNA lipid vaccine", "--system", "hybrid", "--top-k", "2"]
-    result = runner.invoke(app, args)
-    assert result.exit_code == 0
-    assert "Top 2 results" in result.output
-    assert "doc_2" in result.output
-
-
-def test_cli_search_rerank() -> None:
-    args = ["search", "mitochondrial oxidative stress", "--system", "rerank", "--top-k", "2"]
-    result = runner.invoke(app, args)
-    assert result.exit_code == 0
-    assert "Top 2 results" in result.output
-    assert "doc_7" in result.output
-
-
-def test_cli_search_invalid_system() -> None:
-    result = runner.invoke(app, ["search", "query", "--system", "unsupported"])
-    assert result.exit_code == 1
-    assert "Unknown system" in result.output
-
-
-def test_cli_compare() -> None:
+def test_cli_compare_fixture() -> None:
     result = runner.invoke(app, ["compare"])
     assert result.exit_code == 0
-    assert "Synthetic IR Demo Results" in result.output
-    assert "NDCG@10" in result.output
+    assert "Synthetic fixture results (not official SciFact)" in result.output
+    assert "BM25 Lexical" in result.output
+    assert "Hashed TF-IDF" in result.output
+    assert "Hybrid RRF" in result.output
 
 
-def test_cli_report(tmp_path: Path) -> None:
-    out = tmp_path / "report.md"
-    result = runner.invoke(app, ["report", "--output", str(out)])
-    assert result.exit_code == 0
-    assert out.exists()
-    content = out.read_text(encoding="utf-8")
-    assert "Research Paper Semantic Search Benchmark Report" in content
-
-
-def test_cli_report_stdout() -> None:
+def test_cli_report_fixture() -> None:
     result = runner.invoke(app, ["report"])
     assert result.exit_code == 0
-    assert "Research Paper Semantic Search Benchmark Report" in result.output
+    assert "Hand-written synthetic fixture" in result.output
+    assert "not official SciFact" in result.output

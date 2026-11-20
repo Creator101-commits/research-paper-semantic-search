@@ -12,7 +12,6 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from paper_search.data.fixtures import load_fixture_benchmark
 from paper_search.data.schema import BenchmarkDataset, Document, Query
 
 SCIFACT_DATASET = "BeIR/scifact"
@@ -179,7 +178,7 @@ def build_scifact_dataset(
     )
 
 
-def load_scifact_dataset() -> BenchmarkDataset:
+def load_scifact_benchmark() -> BenchmarkDataset:
     """Download and validate the pinned BEIR SciFact benchmark from the HF Hub."""
     corpus_path = _hf_download(SCIFACT_DATASET, _CORPUS_FILE, SCIFACT_REVISION)
     queries_path = _hf_download(SCIFACT_DATASET, _QUERIES_FILE, SCIFACT_REVISION)
@@ -224,9 +223,3 @@ def load_scifact_dataset() -> BenchmarkDataset:
         ),
     }
     return replace(dataset, provenance=provenance)
-
-
-def load_scifact_benchmark() -> tuple[list[Document], list[Query], dict[str, dict[str, int]]]:
-    """Legacy fixture API kept for callers not yet migrated to BenchmarkDataset."""
-    data = load_fixture_benchmark()
-    return data.documents, data.queries, data.qrels
