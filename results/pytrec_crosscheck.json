@@ -1,0 +1,75 @@
+{
+  "max_abs_delta": 0.0,
+  "per_system_mean_deltas": {
+    "bm25": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "dense-bge-base": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "dense-minilm": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "dense-specter": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "hybrid+ce-rerank@100": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "hybrid+ce-rerank@20": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "hybrid+ce-rerank@50": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "hybrid+lexical-rerank": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "hybrid-rrf": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    },
+    "tfidf": {
+      "ndcg_cut_10": 0.0,
+      "map": 0.0,
+      "recall_10": 0.0,
+      "recall_100": 0.0,
+      "P_10": 0.0
+    }
+  }
+}

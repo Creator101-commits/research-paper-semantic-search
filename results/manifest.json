@@ -1,0 +1,194 @@
+{
+  "git_sha": "c66cf51f782461ce1eac570c4a6ee8c9f812597d",
+  "package_version": "0.1.0",
+  "dataset_name": "scifact",
+  "dataset": {
+    "corpus_dataset": "BeIR/scifact",
+    "corpus_revision": "b3b5335604bf5ee3c4447671af975ea25143d4f5",
+    "qrels_dataset": "BeIR/scifact-qrels",
+    "qrels_revision": "2938d17dc3b09882fdb8c12bbbe2e2dc0e75a029",
+    "license": "cc-by-sa-4.0",
+    "files": {
+      "BeIR/scifact/corpus/corpus-00000-of-00001.parquet": "243324b35f03d82bd6d98a5f575966876e86cad7ce16e5333a35b1b793dc4f45",
+      "BeIR/scifact/queries/queries-00000-of-00001.parquet": "1c37956c5dc8b810b60302323c24d1a9e79e26411ba8f5ad9d0888642e2a9034",
+      "BeIR/scifact-qrels/train": "a53f2114831916c096b6c37d9e54da68cef4efdcdbd5ed46533601af972acf1d",
+      "BeIR/scifact-qrels/test": "0864bb985e0ca2367ba217977e72004d549054b2b06666ed9d4825ac7c21284c"
+    },
+    "counts": {
+      "corpus_documents": 5183,
+      "queries": 1109,
+      "train_queries": 809,
+      "test_queries": 300,
+      "qrels": 1109
+    },
+    "note": "BEIR SciFact 'test' qrels correspond to the SciFact development claims; official SciFact test labels are not public."
+  },
+  "splits": {
+    "train_queries": 809,
+    "dev_queries": 162,
+    "test_queries": 300,
+    "dev_query_ids_sha256": "ddcc5a5ec0613e3fb66818e80685a52c602f3b7b5011642e6decb3fe77f68f5d"
+  },
+  "config": {
+    "dense_model": "bge-base",
+    "rrf": {
+      "k": 10.0,
+      "lexical_weight": 1.0,
+      "dense_weight": 2.0
+    },
+    "rerank_depth": null,
+    "k_eval": 100,
+    "dev_fraction": 0.2,
+    "dev_split_salt": "paper-search-dev-v1",
+    "seeds": {
+      "bootstrap": 42
+    },
+    "n_bootstrap": 1000
+  },
+  "frozen_system": "hybrid-rrf",
+  "dev_rerank_selection": [
+    {
+      "system": "hybrid-rrf",
+      "depth": null,
+      "ndcg_at_10": 0.7673604397053564,
+      "mean_latency_ms": 28.95920085714518
+    },
+    {
+      "system": "hybrid+ce-rerank@20",
+      "depth": 20,
+      "ndcg_at_10": 0.7137779616863289,
+      "mean_latency_ms": 149.19320561491023
+    },
+    {
+      "system": "hybrid+ce-rerank@50",
+      "depth": 50,
+      "ndcg_at_10": 0.6961907741188156,
+      "mean_latency_ms": 309.65675870186897
+    },
+    {
+      "system": "hybrid+ce-rerank@100",
+      "depth": 100,
+      "ndcg_at_10": 0.6949486598446097,
+      "mean_latency_ms": 538.7115129192515
+    }
+  ],
+  "models": {
+    "dense": {
+      "minilm": {
+        "key": "minilm",
+        "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+        "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+        "query_prompt": "",
+        "description": "all-MiniLM-L6-v2, compact general-purpose encoder"
+      },
+      "bge-base": {
+        "key": "bge-base",
+        "model_id": "BAAI/bge-base-en-v1.5",
+        "revision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+        "query_prompt": "Represent this sentence for searching relevant passages: ",
+        "description": "bge-base-en-v1.5, stronger general-purpose encoder"
+      },
+      "specter": {
+        "key": "specter",
+        "model_id": "sentence-transformers/allenai-specter",
+        "revision": "2c68eeca61259b2dd70c3f2628219f925df7031a",
+        "query_prompt": "",
+        "description": "allenai-specter, scientific-domain encoder"
+      }
+    },
+    "reranker": {
+      "model_id": "cross-encoder/ms-marco-MiniLM-L6-v2",
+      "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+    }
+  },
+  "encoder_info": {
+    "minilm": {
+      "encoder": "SentenceTransformerEncoder",
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "query_prompt": "",
+      "device": "cuda",
+      "embedding_dim": 384,
+      "backends": [
+        "exact",
+        "faiss"
+      ],
+      "encode_seconds": 14.651981244000012,
+      "index_seconds": 0.04191313599994828,
+      "faiss_build_seconds": 0.04190916200002448,
+      "index_size_bytes": 15922176
+    },
+    "bge-base": {
+      "encoder": "SentenceTransformerEncoder",
+      "model_id": "BAAI/bge-base-en-v1.5",
+      "revision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+      "query_prompt": "Represent this sentence for searching relevant passages: ",
+      "device": "cuda",
+      "embedding_dim": 768,
+      "backends": [
+        "exact",
+        "faiss"
+      ],
+      "encode_seconds": 127.19388632200003,
+      "index_seconds": 0.0028240289999530432,
+      "faiss_build_seconds": 0.002819445000000087,
+      "index_size_bytes": 31844352
+    },
+    "specter": {
+      "encoder": "SentenceTransformerEncoder",
+      "model_id": "sentence-transformers/allenai-specter",
+      "revision": "2c68eeca61259b2dd70c3f2628219f925df7031a",
+      "query_prompt": "",
+      "device": "cuda",
+      "embedding_dim": 768,
+      "backends": [
+        "exact",
+        "faiss"
+      ],
+      "encode_seconds": 131.793759637,
+      "index_seconds": 0.0028906389999292514,
+      "faiss_build_seconds": 0.0028876750000108586,
+      "index_size_bytes": 31844352
+    }
+  },
+  "faiss_parity": {
+    "minilm": {
+      "queries_checked": 50,
+      "ranking_mismatches": 0
+    },
+    "bge-base": {
+      "queries_checked": 50,
+      "ranking_mismatches": 0
+    },
+    "specter": {
+      "queries_checked": 50,
+      "ranking_mismatches": 0
+    }
+  },
+  "stage_times_seconds": {
+    "load_dataset_seconds": 3.430363112000009,
+    "bm25_index_seconds": 0.9527756249999584,
+    "tfidf_index_seconds": 1.6689473580000254,
+    "dense_index_seconds": 273.68725500699986,
+    "dev_evaluation_seconds": 163.761316223,
+    "test_evaluation_seconds": 291.1501588020001,
+    "bootstrap_seconds": 0.8377267920000122
+  },
+  "total_seconds": 783.445895632,
+  "package_versions": {
+    "research-paper-semantic-search": "0.1.0",
+    "numpy": "2.1.3",
+    "pyarrow": "23.0.1",
+    "typer": "0.27.3",
+    "sentence-transformers": "5.7.0",
+    "transformers": "5.20.2",
+    "torch": "2.11.0+cu130",
+    "faiss-cpu": "1.16.0",
+    "huggingface-hub": "1.33.0"
+  },
+  "gpu_name": "Tesla T4",
+  "python_version": "3.13.16",
+  "kaggle_dataset_sources": [
+    "sreeharshak101/research-paper-semantic-search-src"
+  ]
+}
