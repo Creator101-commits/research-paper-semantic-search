@@ -194,6 +194,36 @@ Additional paired comparisons (NDCG@10, same bootstrap):
 
 Latency is mean end-to-end ms/query on the Tesla T4 (first query excluded as warm-up): for reranked systems it includes the shared first-stage hybrid retrieval plus the rerank step. Rerank-stage-only means are 121.5 ms (@20), 276.2 ms (@50), 512.0 ms (@100), and 1.6 ms for the lexical reranker.
 
+### What the figure shows
+
+- (a) Test ranking quality: the frozen `hybrid-rrf` leads all ten
+  systems on both nDCG@10 (0.7547) and MRR@10 (0.7168); BGE-base is a
+  close second (0.7404 / 0.7034), every cross-encoder rerank variant
+  scores below the unreranked hybrid, and hashed TF-IDF is the floor
+  at 0.1770.
+- (b) Per-query nDCG@10 change vs BM25: the frozen hybrid and BGE-base
+  both shift right of zero (mean deltas +0.090 and +0.076); most
+  queries tie at zero, with the hybrid's wins concentrated in a
+  right-skewed tail.
+- (c) Mean nDCG@10 delta vs BM25 with paired bootstrap CIs: the frozen
+  hybrid's +0.090 [+0.061, +0.122] and BGE-base's +0.076 [+0.040,
+  +0.113] exclude zero; the CE reranks at depths 50 and 100 do not,
+  and TF-IDF's -0.487 is far outside.
+- (d) Median retrieval cost per query (log ms): TF-IDF costs 1.1 ms
+  and BM25 11.4 ms, the frozen hybrid 28.4 ms, while CE rerank@100
+  costs 537 ms, about 19x the frozen system.
+- (e) Per-query wins/ties/losses vs BM25 on nDCG@10: the frozen hybrid
+  wins 102, ties 167 and loses only 31 of 300 queries; TF-IDF inverts
+  the pattern (2 wins, 204 losses).
+- (f) Test recall@100: every hybrid and reranked system retrieves the
+  relevant document into the top 100 at 0.9693, versus 0.8826 for
+  BM25, 0.9250 for MiniLM and 0.5083 for TF-IDF.
+
+The headline: the frozen `hybrid-rrf` is simultaneously the most
+accurate and far cheaper than every reranked variant, winning on
+nDCG@10 while cross-encoder reranking reduces quality at 5-19x the
+latency.
+
 ## Findings
 
 Answers to the research questions in `PLAN.md`, all computed from the frozen test run above.
@@ -245,7 +275,7 @@ Tests use the offline fixture and injected encoder/scorer fakes; no model downlo
 
 ## Reproducing the figure
 
-`image.png` is rendered by `scripts/render_figure.py` from `scripts/figure-data.json`, which is populated from the real Kaggle run outputs. Run `uv run --with matplotlib python scripts/render_figure.py` to regenerate it.
+`image.png` is rendered by `scripts/render_figure.py` directly from the committed `results/scifact_benchmark.json`. Run `uv run --with matplotlib python scripts/render_figure.py` to regenerate it.
 
 ## License
 
