@@ -63,7 +63,6 @@ class LexicalOverlapReranker:
             title_overlap = sum(1 for t in title_tokens if t in query_tokens)
             abstract_overlap = sum(1 for t in abstract_tokens if t in query_tokens)
 
-            # Interaction score
             interaction_score = (
                 self.title_weight * title_overlap + abstract_overlap + 0.1 * cand.score
             )

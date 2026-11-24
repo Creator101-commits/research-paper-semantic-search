@@ -70,7 +70,6 @@ class HashedTfidfRetriever:
         self.doc_ids = [doc.doc_id for doc in documents]
         n_docs = len(documents)
 
-        # Build vocabulary across documents
         doc_tokens = [normalize_text(doc.full_text) for doc in documents]
         term_dfs: Counter[str] = Counter()
         for tokens in doc_tokens:
@@ -86,7 +85,6 @@ class HashedTfidfRetriever:
             idf_arr[i] = math.log((n_docs + 1.0) / (df + 1.0)) + 1.0
         self.idf = idf_arr
 
-        # Encode all documents
         embeddings = np.zeros((n_docs, self.embedding_dim), dtype=np.float64)
         for i, doc in enumerate(documents):
             embeddings[i] = self._encode_text(doc.full_text)

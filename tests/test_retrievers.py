@@ -63,12 +63,10 @@ class BagOfWordsEncoder:
 def test_bm25_retrieval(sample_corpus: list[Document]) -> None:
     bm25 = BM25Retriever().index(sample_corpus)
 
-    # Search for NLP
     results = bm25.search("transformer language modeling", k=2)
     assert len(results) > 0
     assert results[0].doc_id == "d1"
 
-    # Search for CRISPR
     crispr_results = bm25.search("CRISPR gene editing", k=1)
     assert len(crispr_results) == 1
     assert crispr_results[0].doc_id == "d2"
