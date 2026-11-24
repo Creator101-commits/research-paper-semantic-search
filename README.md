@@ -6,7 +6,7 @@ TF-IDF, three sentence-transformer bi-encoders, weighted RRF fusion
 and a cross-encoder reranker on the BEIR SciFact corpus (5,183
 documents, 1,109 claims), tuning on a dev split and reading test once.
 
-![SciFact retrieval benchmark results](image.png)
+![SciFact retrieval benchmark: ranking quality per system, per-query nDCG@10 deltas vs BM25, mean-delta confidence intervals, retrieval latency, wins/ties/losses and recall@100](image.png)
 
 The figure follows the frozen test run: (a) ranking quality per
 system, (b) per-query nDCG@10 change vs BM25, (c) mean deltas with
