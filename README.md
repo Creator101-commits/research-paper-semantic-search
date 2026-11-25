@@ -1,5 +1,7 @@
 # Research Paper Semantic Search
 
+> Finding the papers that support a scientific claim: hybrid keyword plus dense search reaches 0.755 nDCG@10, 0.09 above BM25.
+
 Can lexical, dense and hybrid retrieval find the papers that actually
 support a scientific claim? This project benchmarks BM25, hashed
 TF-IDF, three sentence-transformer bi-encoders, weighted RRF fusion
