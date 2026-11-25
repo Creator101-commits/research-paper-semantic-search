@@ -1,6 +1,6 @@
 # Research Paper Semantic Search
 
-> Finding the papers that support a scientific claim: hybrid keyword plus dense search reaches 0.755 nDCG@10, 0.09 above BM25.
+> Scientific claim retrieval
 
 Can lexical, dense and hybrid retrieval find the papers that actually
 support a scientific claim? This project benchmarks BM25, hashed
@@ -57,6 +57,9 @@ BEIR SciFact -> deterministic dev split (162 of 809 train queries)
    + pytrec_eval cross-check
 ```
 
+BEIR's "test" split is SciFact's development claims because the
+official test labels are not public.
+
 ## Run it
 
 ```bash
@@ -73,18 +76,3 @@ The full neural benchmark runs on Kaggle GPU:
 ```bash
 ./scripts/kaggle_run.sh
 ```
-
-## Notes
-
-- All tuning (encoder, fusion weights, rerank depth) happened on the
-  dev split and the test split was read once; BEIR's "test" split is
-  SciFact's development claims, and the official test labels are not
-  public.
-- Cross-encoder reranking reduced quality at every depth while
-  multiplying latency (see Results); the frozen system keeps
-  `rerank_depth: null`.
-- Data: `BeIR/scifact` and `scifact-qrels` at pinned revisions
-  (CC-BY-SA-4.0); bi-encoders and the reranker are revision-pinned;
-  kernel v13 @ `c66cf51` on a Tesla T4.
-- `results/scifact_benchmark.json` is the committed run output;
-  `image.png` renders from it via `scripts/render_figure.py`.
